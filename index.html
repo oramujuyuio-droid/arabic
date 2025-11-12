@@ -1,0 +1,308 @@
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ar">
+
+<head>
+    <meta charset="UTF-8">
+    <title>امتحان عربي إلكتروني</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            margin: 50px;
+            direction: rtl;
+            background: linear-gradient(to bottom, #e0f7fa, #ffffff);
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #00796b;
+        }
+
+        #timer {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #d32f2f;
+        }
+
+        .question {
+            margin-bottom: 20px;
+            text-align: right;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .question.show {
+            opacity: 1;
+        }
+
+        .option {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            transition: background 0.3s;
+        }
+
+        .option:hover {
+            background-color: #b2dfdb;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            border-radius: 5px;
+            border: none;
+            background-color: #00796b;
+            color: white;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #004d40;
+        }
+
+        #result {
+            font-size: 22px;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #00796b;
+        }
+
+        #nameContainer {
+            margin-bottom: 30px;
+        }
+
+        #studentName {
+            padding: 10px;
+            font-size: 16px;
+            width: 250px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #progress {
+            width: 80%;
+            height: 20px;
+            background-color: #e0e0e0;
+            margin: 10px auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #00796b;
+            transition: width 0.3s ease;
+        }
+
+        #timeUpMessage {
+            display: none;
+            color: #d32f2f;
+            font-size: 20px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #leaderboard {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        table {
+            width: 80%;
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #00796b;
+            padding: 10px;
+            font-size: 18px;
+        }
+
+        th {
+            background-color: #00796b;
+            color: white;
+        }
+
+        @media(max-width:600px) {
+            body {
+                margin: 20px;
+            }
+
+            #studentName {
+                width: 100%;
+            }
+
+            .question {
+                font-size: 16px;
+                padding: 15px;
+            }
+
+            button {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            table {
+                width: 100%;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🏆 امتحان عربي إلكتروني</h1>
+
+    <div id="nameContainer">
+        <p>اكتب اسمك الثنائي:</p>
+        <input type="text" id="studentName" placeholder="مثال: عمر رامى">
+        <button onclick="startQuiz()">ابدأ الامتحان</button>
+    </div>
+
+    <div id="quizContainer" style="display:none;"></div>
+    <div id="progress" style="display:none;">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="timer" style="display:none;">الوقت المتبقي: 05:00</div>
+    <p id="timeUpMessage">⏰ انتهى الوقت! تم إرسال إجاباتك تلقائيًا.</p>
+    <button id="prevBtn" onclick="prevQuestion()" style="display:none;">السابق</button>
+    <button id="nextBtn" onclick="nextQuestion()" style="display:none;">التالي</button>
+
+    <p id="result"></p>
+    <div id="leaderboard"></div>
+
+    <script>
+        const questions = [
+            { q: 'ما معنى كلمة "غثاء"؟', options: ['شعور بالغضب', 'شيء سيء ومزعج', 'فرحة كبيرة', 'نجاح باهر'], answer: 'شيء سيء ومزعج' },
+            { q: 'ما جمع كلمة "كتاب"؟', options: ['كتب', 'كتيبات', 'كتابات', 'كتبوا'], answer: 'كتب' },
+            { q: 'ما الفعل المضارع من "ذهب"؟', options: ['يذهب', 'ذهبوا', 'ذاهب', 'ذاهبة'], answer: 'يذهب' },
+            { q: 'اختر الكلمة الصحيحة لإكمال الجملة: "السماء ____ زرقاء".', options: ['كانت', 'هي', 'يبدو', 'هو'], answer: 'كانت' },
+            { q: 'ما معنى كلمة "بعدا"؟', options: ['وداعاً', 'قريب', 'بعيد', 'هنا'], answer: 'بعيد' }
+        ];
+
+        let currentQuestion = 0;
+        let userAnswers = [];
+        let timeLimit = 5 * 60;
+        let timerInterval;
+        let student = '';
+        let startTime;
+
+        function startQuiz() {
+            const nameInput = document.getElementById('studentName').value.trim();
+            if (nameInput === '') { alert('اكتب اسمك الثنائي أولاً!'); return; }
+            student = nameInput;
+            document.getElementById('nameContainer').style.display = 'none';
+            document.getElementById('quizContainer').style.display = 'block';
+            document.getElementById('timer').style.display = 'block';
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('prevBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            startTime = new Date();
+            showQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                let minutes = Math.floor(timeLimit / 60);
+                let seconds = timeLimit % 60;
+                document.getElementById('timer').innerText = `الوقت المتبقي: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                if (timeLimit <= 0) { clearInterval(timerInterval); document.getElementById('timeUpMessage').style.display = 'block'; calculateScore(); }
+                timeLimit--;
+            }, 1000);
+        }
+
+        function showQuestion() {
+            const q = questions[currentQuestion];
+            let html = `<div class="question"><p>${currentQuestion + 1}. ${q.q}</p>`;
+            q.options.forEach(opt => {
+                let checked = userAnswers[currentQuestion] === opt ? 'checked' : '';
+                html += `<label class="option"><input type="radio" name="q" value="${opt}" ${checked}> ${opt}</label>`;
+            });
+            html += '</div>';
+            document.getElementById('quizContainer').innerHTML = html;
+            setTimeout(() => { document.querySelector('.question').classList.add('show'); }, 50);
+            let progressPercent = ((currentQuestion + 1) / questions.length) * 100;
+            document.getElementById('progress-bar').style.width = progressPercent + '%';
+            document.getElementById('prevBtn').style.display = currentQuestion === 0 ? 'none' : 'inline-block';
+            document.getElementById('nextBtn').innerText = currentQuestion === questions.length - 1 ? 'إرسال' : 'التالي';
+        }
+
+        function nextQuestion() {
+            const selected = document.querySelector('input[name="q"]:checked');
+            if (!selected) { alert('اختر إجابة أولاً!'); return; }
+            userAnswers[currentQuestion] = selected.value;
+            if (currentQuestion < questions.length - 1) { currentQuestion++; showQuestion(); }
+            else calculateScore();
+        }
+
+        function prevQuestion() {
+            const selected = document.querySelector('input[name="q"]:checked');
+            if (selected) userAnswers[currentQuestion] = selected.value;
+            if (currentQuestion > 0) { currentQuestion--; showQuestion(); }
+        }
+
+        function calculateScore() {
+            clearInterval(timerInterval);
+            const endTime = new Date();
+            const durationSeconds = Math.floor((endTime - startTime) / 1000);
+            let score = 0; questions.forEach((q, i) => { if (userAnswers[i] === q.answer) score++; });
+            let evaluation = ''; if (score === 5) evaluation = 'ممتاز 🌟'; else if (score >= 3) evaluation = 'جيد 👍'; else evaluation = 'ضعيف 👎';
+
+            const scores = JSON.parse(localStorage.getItem('scores')) || [];
+            scores.push({ name: student, score: score, eval: evaluation, time: new Date().toLocaleString(), duration: durationSeconds });
+            localStorage.setItem('scores', JSON.stringify(scores));
+
+            document.getElementById('quizContainer').innerHTML = '';
+            document.getElementById('prevBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('progress').style.display = 'none';
+
+            document.getElementById('result').innerHTML = `الطالب: <strong>${student}</strong><br>لقد حصلت على <strong>${score}</strong> من 5 نقاط!<br>تقييمك: <strong>${evaluation}</strong>`;
+            showLeaderboard();
+        }
+
+        function showLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('scores')) || [];
+            if (scores.length === 0) return;
+            // ترتيب: الدرجة الأعلى، ثم أسرع وقت إذا متساوية
+            scores.sort((a, b) => { if (b.score !== a.score) return b.score - a.score; return a.duration - a.duration; });
+            const top = scores.slice(0, 4);
+
+            let html = `<h2>🏅 لوحة المتفوقين</h2>
+<table>
+<tr><th>الترتيب</th><th>الاسم</th><th>النتيجة</th><th>التقييم</th><th>المدة</th><th>التاريخ</th></tr>`;
+            top.forEach((s, i) => {
+                const minutes = Math.floor(s.duration / 60);
+                const seconds = s.duration % 60;
+                html += `<tr><td>${i + 1}</td><td>${s.name}</td><td>${s.score}/5</td><td>${s.eval}</td><td>${minutes}:${seconds.toString().padStart(2, '0')}</td><td>${s.time}</td></tr>`;
+            });
+            html += '</table>';
+            document.getElementById('leaderboard').innerHTML = html;
+        }
+
+        showLeaderboard();
+    </script>
+</body>
+
+</html>
