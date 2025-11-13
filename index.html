@@ -328,7 +328,7 @@
             if (scores.length === 0) return;
             // ترتيب: الدرجة الأعلى، ثم أسرع وقت إذا متساوية
             scores.sort((a, b) => { if (b.score !== a.score) return b.score - a.score; return a.duration - a.duration; });
-            const top = scores.slice(0, 4);
+            const top = scores.slice(0, 6);
 
             let html = `<h2>🏅 لوحة المتفوقين</h2>
 <table>
